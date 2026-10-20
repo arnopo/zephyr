@@ -8,6 +8,7 @@
 #define RESOURCE_TABLE_H__
 
 #include <openamp/remoteproc.h>
+#include <openamp/rpmsg_virtio.h>
 #include <openamp/virtio.h>
 
 #ifdef __cplusplus
@@ -21,7 +22,25 @@ extern "C" {
 #define VRING1_ID               CONFIG_OPENAMP_RSC_TABLE_IPM_TX_ID /* (remote to host) */
 
 #define VRING_COUNT             2
-#define RPMSG_IPU_C0_FEATURES   1
+
+#define RPMSG_CFG_ENTRY_HELPER							\
+	.rpmsg_config = {							\
+		.version = RPMSG_VIRTIO_CONFIG_VERSION,				\
+		.size = RPMSG_VIRTIO_CONFIG_SIZE,				\
+		.drv2dev_buf_size = CONFIG_OPENAMP_RSC_TABLE_CFG_RPMSG_RX_SIZE,	\
+		.dev2drv_buf_size = CONFIG_OPENAMP_RSC_TABLE_CFG_RPMSG_TX_SIZE,	\
+	},
+
+#if defined(CONFIG_OPENAMP_RSC_TABLE_CFG)
+#define RPMSG_IPU_C0_FEATURES   (BIT(VIRTIO_RPMSG_F_NS) | \
+				 BIT(VIRTIO_RPMSG_F_BUFSZ))
+#define RPMSG_CFG_LEN           RPMSG_VIRTIO_CONFIG_SIZE
+#define RPMSG_CFG_ENTRY		RPMSG_CFG_ENTRY_HELPER
+#else
+#define RPMSG_IPU_C0_FEATURES   BIT(VIRTIO_RPMSG_F_NS)
+#define RPMSG_CFG_LEN           0
+#define RPMSG_CFG_ENTRY
+#endif
 
 #define VRING_RX_ADDRESS        -1  /* allocated by Master processor */
 #define VRING_TX_ADDRESS        -1  /* allocated by Master processor */
@@ -51,6 +70,9 @@ struct fw_resource_table {
 	struct fw_rsc_vdev vdev;
 	struct fw_rsc_vdev_vring vring0;
 	struct fw_rsc_vdev_vring vring1;
+#if defined(CONFIG_OPENAMP_RSC_TABLE_CFG)
+	struct rpmsg_virtio_config_space rpmsg_config;
+#endif
 #endif
 
 #if defined(CONFIG_RAM_CONSOLE)
@@ -72,10 +94,16 @@ struct fw_resource_table {
 #endif
 
 #define VDEV_ENTRY_HELPER(x)							\
-	.vdev = {RSC_VDEV, VIRTIO_ID_RPMSG, 0, RPMSG_IPU_C0_FEATURES, 0, 0, 0,	\
-		VRING_COUNT, {0, 0},},						\
+	.vdev = {								\
+		.type = RSC_VDEV,						\
+		.id = VIRTIO_ID_RPMSG,						\
+		.dfeatures = RPMSG_IPU_C0_FEATURES,				\
+		.config_len = RPMSG_CFG_LEN,					\
+		.num_of_vrings = VRING_COUNT,					\
+	},									\
 	.vring0 = {VRING_TX_ADDRESS, VRING_ALIGNMENT, x, VRING0_ID, 0},		\
-	.vring1 = {VRING_RX_ADDRESS, VRING_ALIGNMENT, x, VRING1_ID, 0},
+	.vring1 = {VRING_RX_ADDRESS, VRING_ALIGNMENT, x, VRING1_ID, 0},		\
+	RPMSG_CFG_ENTRY
 
 #if (CONFIG_OPENAMP_RSC_TABLE_NUM_RPMSG_BUFF > 0)
 	#define VDEV_ENTRY							\
