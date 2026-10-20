@@ -35,6 +35,28 @@ config OPENAMP_RSC_TABLE_NUM_RPMSG_BUFF
 	  This option specifies the number of buffer used in a Vring for
 	  interprocessor communication
 
+config OPENAMP_RSC_TABLE_CFG
+	bool "RPMsg virtio configuration space in the resource table"
+	depends on OPENAMP_RSC_TABLE_NUM_RPMSG_BUFF > 0
+	help
+	  Declare the RPMsg virtio configuration space in the vdev resource
+	  and advertise the VIRTIO_RPMSG_F_BUFSZ feature, so that the host
+	  uses the RPMsg buffer sizes defined by the remote processor.
+
+config OPENAMP_RSC_TABLE_CFG_RPMSG_RX_SIZE
+	int "Configuration space RPMsg RX buffer size"
+	default 512
+	depends on OPENAMP_RSC_TABLE_CFG
+	help
+	  Size in bytes of each RPMsg buffer used to receive messages from the host.
+
+config OPENAMP_RSC_TABLE_CFG_RPMSG_TX_SIZE
+	int "Configuration space RPMsg TX buffer size"
+	default 512
+	depends on OPENAMP_RSC_TABLE_CFG
+	help
+	  Size in bytes of each RPMsg buffer used to send messages to the host.
+
 config OPENAMP_RSC_TABLE_IPM_RX_ID
 	int "IPM RX channel ID"
 	default 0
